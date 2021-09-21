@@ -4,11 +4,16 @@ require('dotenv').config();
 
 async function main() {
   const names = [
-    "PngAvaxStart",
-    "PngAvaxSwap",
-    "PngAvaxTundra",
-    "PngAvaxYts"
+    // "JoeAvaxBifi",
+    // "JoeAvaxBnb",
+    // "JoeAvaxMyak",
+    // "JoeUsdtEUsdcE",
+    // "JoeAvaxGb",
+    // "JoeAvaxSpell",
+    "JoeUsdcEMai",
   ];
+
+  const gas = ethers.BigNumber.from('225000000000');
   
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
@@ -19,9 +24,9 @@ async function main() {
 
   const governance_addr = "0x294aB3200ef36200db84C4128b7f1b4eec71E38a";
   const timelock_addr = governance_addr;
-  const strategist_addr = "0xc9a51fB9057380494262fd291aED74317332C0a2";
+  const strategist_addr = deployer.address;
   const controller_addr = "0xf7B8D9f8a82a7a6dd448398aFC5c77744Bd6cb85";
-  const gaugeproxy_addr = "0xFc371bA1E7874Ad893408D7B581F3c8471F03D2C";
+  const gaugeproxy_addr = "0x215D5eDEb6A6a3f84AE9d72962FEaCCdF815BF27";
 
   const Controller = new ethers.Contract(controller_addr, controller_ABI, deployer);
 
@@ -34,16 +39,17 @@ async function main() {
     const globe = await ethers.getContractFactory(snowglobe_name);
   
     /* Deploy Strategy */
-    const Strategy = await strategy.deploy(governance_addr, strategist_addr, controller_addr, timelock_addr);
+    const Strategy = await strategy.deploy(governance_addr, strategist_addr, controller_addr, timelock_addr, {gasPrice: gas});
     console.log(`deployed ${strategy_name} at : ${Strategy.address}`);
 
     /* Deploy Snowglobe */
     const lp = await Strategy.want();
-    const SnowGlobe = await globe.deploy(lp, governance_addr, timelock_addr, controller_addr);
+    const SnowGlobe = await globe.deploy(lp, governance_addr, timelock_addr, controller_addr, {gasPrice: gas});
     console.log(`deployed ${snowglobe_name} at : ${SnowGlobe.address}`);
   
     /* Set Globe */
-    const setGlobe = await Controller.setGlobe(lp, SnowGlobe.address);
+    // must be done by strategist or goverance
+    const setGlobe = await Controller.setGlobe(lp, SnowGlobe.address, {gasPrice: gas});
     const tx_setGlobe = await setGlobe.wait(1);
     if (!tx_setGlobe.status) {
       console.error("Error setting the globe for: ",name);
@@ -52,7 +58,8 @@ async function main() {
     console.log("Set Globe in the Controller for: ",name);
 
     /* Approve Strategy */
-    const approveStrategy = await Controller.approveStrategy(lp, Strategy.address);
+    // must be done by timelock
+    const approveStrategy = await Controller.approveStrategy(lp, Strategy.address, {gasPrice: gas});
     const tx_approveStrategy = await approveStrategy.wait(1);
     if (!tx_approveStrategy.status) {
       console.error("Error approving the strategy for: ",name);
@@ -61,7 +68,8 @@ async function main() {
     console.log("Approved Strategy in the Controller for: ",name);
 
     /* Set Strategy */
-    const setStrategy = await Controller.setStrategy(lp, Strategy.address);
+    // must be done by strategist or goverance
+    const setStrategy = await Controller.setStrategy(lp, Strategy.address, {gasPrice: gas});
     const tx_setStrategy = await setStrategy.wait(1);
     if (!tx_setStrategy.status) {
       console.error("Error setting the strategy for: ",name);
@@ -69,22 +77,32 @@ async function main() {
     }
     console.log("Set Strategy in the Controller for: ",name);
   
+    let harvester = "0x096a46142C199C940FfEBf34F0fe2F2d674fDB1F";
     /* Whitelist Harvester */
-    await Strategy.whitelistHarvester("0x096a46142C199C940FfEBf34F0fe2F2d674fDB1F");
+    await Strategy.whitelistHarvester(harvester, {gasPrice: gas});
     console.log('whitelisted the harvester for: ',name);
+
+    // /* addKeeper (folding strat) */
+    // await Strategy.addKeeper(harvester);
+    // console.log('added keeper for: ',name);
+
+    // const GaugeProxy = new ethers.Contract(gaugeproxy_addr, gaugeproxy_ABI, deployer);
+
   
-    /* Add Gauge */
-    const MultiSig = new ethers.Contract(governance_addr, multisig_ABI, deployer);
-    const iGaugeProxy = new ethers.utils.Interface(gaugeproxy_ABI);
-    const encoding = iGaugeProxy.encodeFunctionData("addGauge", [SnowGlobe.address]);
+    // /* Add Gauge */
+    // const MultiSig = new ethers.Contract(governance_addr, multisig_ABI, deployer);
+    // const iGaugeProxy = new ethers.utils.Interface(gaugeproxy_ABI);
+    // const encoding = iGaugeProxy.encodeFunctionData("addGauge", [SnowGlobe.address]);
     
-    const addGauge = await MultiSig.submitTransaction(gaugeproxy_addr, 0, encoding);
-    const tx_addGauge = await addGauge.wait(1);
-    if (!tx_addGauge.status) {
-      console.error("Error adding the gauge to multisig transaction list for: ",name);
-      return;
-    }
-    console.log("addGauge transaction submitted for: ",name);
+    // const addGauge = await MultiSig.submitTransaction(gaugeproxy_addr, 0, encoding);
+    // const addGauge = await GaugeProxy.addGauge(SnowGlobe.address);
+    // const tx_addGauge = await addGauge.wait(1);
+    // if (!tx_addGauge.status) {
+    //   console.error("Error adding the gauge to multisig transaction list for: ",name);
+    //   return;
+    // }
+    // console.log("addGauge transaction submitted for: ",name);
+    // console.log(`${name}'s Gaugue: ${gauge_addr}`)
     return;
   };
 

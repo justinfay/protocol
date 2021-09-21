@@ -3,14 +3,18 @@ require('dotenv').config();
 
 async function main() {
   const pools = [
+    // {
+    //   name: "JoeUsdtEUsdcE",
+    //   strategy_addr: "0xF6AaAb65b735e71951Af436bBa7aC4461c9E3E83",
+    //   snowglobe_addr: "0xd596136ee746BaeE7ac159B3c21E71b3aeb81A68"
+    // },
     {
-
-      name: "PngGdlPng",
-      strategy_addr: "0xA514c642b92C8a2c3CBF7Cf7Af53f5C2C835AfC7",
-      // snowglobe_addr: "0x096bAE6C45b0047eF3F1cf1f1c8a56eF0cd58cdE"
-
+      name: "JoeAvaxSpell",
+      strategy_addr: "0x5E881dE5B6127134600e03705966f3EA37D9e2d2"
     }
   ];
+
+  const gas = ethers.BigNumber.from('225000000000');
 
   const [deployer] = await ethers.getSigners();
   console.log("Mending contracts with the account:", deployer.address);
@@ -35,7 +39,7 @@ async function main() {
   
     // /* Deploy Strategy */
     // const strategy = await ethers.getContractFactory(strategy_name);
-    // const Strategy = await strategy.deploy(governance_addr, strategist_addr, controller_addr, timelock_addr);
+    // const Strategy = await strategy.deploy(governance_addr, strategist_addr, controller_addr, timelock_addr, {gasPrice: gas});
     // console.log(`deployed ${strategy_name} at : ${Strategy.address}`);
     
     /* Connect to Strategy */
@@ -45,7 +49,7 @@ async function main() {
     /* Deploy Snowglobe */
     const lp = await Strategy.want();
     const globe = await ethers.getContractFactory(snowglobe_name);
-    const SnowGlobe = await globe.deploy(lp, governance_addr, timelock_addr, controller_addr);
+    const SnowGlobe = await globe.deploy(lp, governance_addr, timelock_addr, controller_addr, {gasPrice: gas});
     console.log(`deployed ${snowglobe_name} at : ${SnowGlobe.address}`);
   
     // // /* Connect to Snowglobe */
@@ -53,7 +57,7 @@ async function main() {
     // const SnowGlobe = new ethers.Contract(pool.snowglobe_addr, snowglobe_ABI, deployer);
   
     /* Set Globe */
-    const setGlobe = await Controller.setGlobe(lp, SnowGlobe.address);
+    const setGlobe = await Controller.setGlobe(lp, SnowGlobe.address, {gasPrice: gas});
     const tx_setGlobe = await setGlobe.wait(1);
     if (!tx_setGlobe.status) {
       console.error("Error setting the globe for: ",pool.name);
@@ -62,7 +66,7 @@ async function main() {
     console.log("Set Globe in the Controller for: ",pool.name);
 
     /* Approve Strategy */
-    const approveStrategy = await Controller.approveStrategy(lp, Strategy.address);
+    const approveStrategy = await Controller.approveStrategy(lp, Strategy.address, {gasPrice: gas});
     const tx_approveStrategy = await approveStrategy.wait(1);
     if (!tx_approveStrategy.status) {
       console.error("Error approving the strategy for: ",pool.name);
@@ -71,7 +75,7 @@ async function main() {
     console.log("Approved Strategy in the Controller for: ",pool.name);
 
     /* Set Strategy */
-    const setStrategy = await Controller.setStrategy(lp, Strategy.address);
+    const setStrategy = await Controller.setStrategy(lp, Strategy.address, {gasPrice: gas});
     const tx_setStrategy = await setStrategy.wait(1);
     if (!tx_setStrategy.status) {
       console.error("Error setting the strategy for: ",pool.name);
@@ -80,21 +84,21 @@ async function main() {
     console.log("Set Strategy in the Controller for: ",pool.name);
   
     /* Whitelist Harvester */
-    await Strategy.whitelistHarvester("0x096a46142C199C940FfEBf34F0fe2F2d674fDB1F");
+    await Strategy.whitelistHarvester("0x096a46142C199C940FfEBf34F0fe2F2d674fDB1F", {gasPrice: gas});
     console.log('whitelisted the harvester for: ',pool.name);
   
-    /* Add Gauge */
-    const MultiSig = new ethers.Contract(governance_addr, multisig_ABI, deployer);
-    const iGaugeProxy = new ethers.utils.Interface(gaugeproxy_ABI);
-    const encoding = iGaugeProxy.encodeFunctionData("addGauge", [SnowGlobe.address]);
+    // /* Add Gauge */
+    // const MultiSig = new ethers.Contract(governance_addr, multisig_ABI, deployer);
+    // const iGaugeProxy = new ethers.utils.Interface(gaugeproxy_ABI);
+    // const encoding = iGaugeProxy.encodeFunctionData("addGauge", [SnowGlobe.address]);
     
-    const addGauge = await MultiSig.submitTransaction(gaugeproxy_addr, 0, encoding);
-    const tx_addGauge = await addGauge.wait(1);
-    if (!tx_addGauge.status) {
-      console.error("Error adding the gauge to multisig transaction list for: ",pool.name);
-      return;
-    }
-    console.log("addGauge transaction submitted for: ",pool.name);
+    // const addGauge = await MultiSig.submitTransaction(gaugeproxy_addr, 0, encoding);
+    // const tx_addGauge = await addGauge.wait(1);
+    // if (!tx_addGauge.status) {
+    //   console.error("Error adding the gauge to multisig transaction list for: ",pool.name);
+    //   return;
+    // }
+    // console.log("addGauge transaction submitted for: ",pool.name);
     return;
   };
 
