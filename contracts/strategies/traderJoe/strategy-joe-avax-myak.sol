@@ -7,7 +7,7 @@ contract StrategyJoeAvaxMyakLp is StrategyJoeFarmBase {
 
     uint256 public avax_myak_poolId = 51;
 
-    address public joe_avax_myak_lp = 0xdDAaAD7366B455AfF8E7c82940C43CEB5829B604;
+    address public joe_avax_myak_lp = 0xAD3Afde5B6b8C353078Fd368f508C97d593353cc;
     address public myak = 0xdDAaAD7366B455AfF8E7c82940C43CEB5829B604;
 
     constructor(
