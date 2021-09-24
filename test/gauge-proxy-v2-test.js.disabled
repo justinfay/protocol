@@ -36,8 +36,8 @@ describe("TraderJoe", async () => {
   });
 
   beforeEach( async () => {
-    console.log('-- Connect to GaugeProxyV1 --');
-    const gaugeProxyV1 = new ethers.Contract(gaugeProxyV1addr, gaugeProxyV1ABI, governanceSigner);
+    // console.log('-- Connect to GaugeProxyV1 --');
+    // const gaugeProxyV1 = new ethers.Contract(gaugeProxyV1addr, gaugeProxyV1ABI, governanceSigner);
   
     console.log("-- Deploying GaugeProxyV2 contract --");
     const GaugeProxyV2 = await hre.ethers.getContractFactory("GaugeProxyV2");
