@@ -9,7 +9,7 @@ abstract contract StrategyPngFarmBase is StrategyStakingRewardsBase {
     address public token1;
 
     // How much PNG tokens to keep?
-    uint256 public keepPNG = 0;
+    uint256 public keepPNG = 1000;
     uint256 public constant keepPNGMax = 10000;
 
     constructor(
