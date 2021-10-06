@@ -5,6 +5,7 @@ const { BigNumber } = require("@ethersproject/bignumber");
 const {increaseTime, overwriteTokenAmount, increaseBlock, toGwei, fromWei} = require("./utils/helpers");
 const { expect } = chai;
 const {setupSigners,snowballAddr,treasuryAddr} = require("./utils/static");
+const { utils } = require("web3");
 
 
 const doGenericTest = (name,assetAddr,snowglobeAddr,strategyAddr,globeABI,stratABI, txnAmt) => {
@@ -22,7 +23,12 @@ const doGenericTest = (name,assetAddr,snowglobeAddr,strategyAddr,globeABI,stratA
             walletSigner = ethers.provider.getSigner(walletAddr);
             [timelockSigner,strategistSigner,controllerSigner,governanceSigner] = await setupSigners();
 
+            // Send an ETH for txn costs
+            let tx = {to: timelockSigner._address, value: ethers.utils.parseEther("1.0")};
+            await walletSigner.sendTransaction(tx);
+
             slot = (name.includes("Benqi")) ? 0: 1;
+            slot = (name.includes("WAVAX")) ? 3: 0;
             await overwriteTokenAmount(assetAddr,walletAddr,txnAmt,slot);
         
             assetContract = await ethers.getContractAt("ERC20",assetAddr,walletSigner);
@@ -51,8 +57,8 @@ const doGenericTest = (name,assetAddr,snowglobeAddr,strategyAddr,globeABI,stratA
                 strategyContract = new ethers.Contract(strategyAddr, stratABI, governanceSigner);
                 globeContract = new ethers.Contract(snowglobeAddr, globeABI, governanceSigner);
             }
-
             await strategyContract.connect(governanceSigner).whitelistHarvester(walletAddr);
+            await strategyContract.connect(governanceSigner).addKeeper(walletAddr);
         });
     
         it("user wallet contains asset balance", async () =>{
@@ -112,9 +118,15 @@ const doGenericTest = (name,assetAddr,snowglobeAddr,strategyAddr,globeABI,stratA
             await assetContract.connect(walletSigner).approve(snowglobeAddr,amt);
             await globeContract.connect(walletSigner).deposit(amt);
             await globeContract.connect(walletSigner).earn();
-            await increaseTime(60 * 60 * 24 * 15);
 
+            let bal = await strategyContract.connect(walletSigner).balanceOfWant();
+            let balanceOfPool = await strategyContract.balanceOfPool();
+            console.log("Balance of want: "+ bal);
+            console.log("Balance of pool: "+ balanceOfPool);
+            //await strategyContract.connect(walletSigner).leverageToMax();
+            await increaseTime(60 * 60 * 24 * 15);
             await strategyContract.connect(walletSigner).harvest();
+
             await globeContract.connect(walletSigner).withdrawAll();
             let newAmt = await assetContract.connect(walletSigner).balanceOf(walletAddr);
 
