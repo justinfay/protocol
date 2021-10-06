@@ -61,6 +61,8 @@ abstract contract StrategyJoeFarmBase is StrategyBase {
         return _amount;
     }
 
+    function harvest() public virtual;
+
     function _swapTraderJoe(
         address _from,
         address _to,
